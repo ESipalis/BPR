@@ -1,0 +1,6 @@
+[submodule "Production/FreeRTOS"]
+	path = Production/FreeRTOS
+	url = https://github.com/ihavn/VIA_FreeRTOS_AVRMEGA
+[submodule "Production/iot_drivers"]
+	path = Production/iot_drivers
+	url = https://github.com/ihavn/IoT_Semester_project.git
