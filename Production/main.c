@@ -23,6 +23,8 @@
 // Needed for LoRaWAN
 #include <lora_driver.h>
 
+#include <rcServo.h>
+
 #define LORA_appEUI "d78039d42ee6237a"
 #define LORA_appKEY "99f3755169ee604cf8f0472c4a99daf7"
 #define LORA_JOIN_NETWORK_MAX_TRIES 7
@@ -30,14 +32,37 @@
 // Prototype for LoRaWAN handler
 void lora_handler_create(UBaseType_t lora_handler_task_priority);
 void lora_init_task(void *pvParameters);
+void servo_control_task(void *pvParameters);
 
 /*-----------------------------------------------------------*/
 void create_tasks_and_semaphores(void) {
+//    xTaskCreate(
+//            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
+//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
+//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+//            , NULL);
+
     xTaskCreate(
-            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
+            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
             , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
             , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
             , NULL);
+}
+
+void servo_control_task(void *pvParameters) {
+    for (;;) {
+        rcServoSet(0, -100);
+        printf("Turned 1...\n");
+        vTaskDelay(200);
+
+        rcServoSet(0, 0);
+        printf("Turned 2...\n");
+        vTaskDelay(200);
+
+        rcServoSet(0, 100);
+        printf("Turned 3...\n");
+        vTaskDelay(200);
+    }
 }
 
 void lora_init_task(void *pvParameters) {
@@ -101,8 +126,8 @@ void initialiseSystem() {
     hal_create(4);
     // Initialise the LoRaWAN driver without down-link buffer
     lora_driver_create(LORA_USART, NULL);
-    // Create LoRaWAN task and start it up with priority 3
-    lora_handler_create(3);
+
+    rcServoCreate();
 }
 
 /*-----------------------------------------------------------*/
