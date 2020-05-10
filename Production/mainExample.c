@@ -119,7 +119,7 @@ void initialiseSystem()
 	// Make it possible to use stdio on COM port 0 (USB) on Arduino board - Setting 57600,8,N,1
 	stdioCreate(ser_USART0);
 	// Let's create some tasks
-	create_tasks_and_semaphores();
+	// create_tasks_and_semaphores();
 
 	// vvvvvvvvvvvvvvvvv BELOW IS LoRaWAN initialisation vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 	// Initialise the HAL layer and use 5 for LED driver priority

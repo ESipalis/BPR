@@ -36,17 +36,17 @@ void servo_control_task(void *pvParameters);
 
 /*-----------------------------------------------------------*/
 void create_tasks_and_semaphores(void) {
-//    xTaskCreate(
-//            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
-//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-//            , NULL);
-
     xTaskCreate(
-            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
+            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
             , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
             , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
             , NULL);
+
+//    xTaskCreate(
+//            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
+//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
+//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+//            , NULL);
 }
 
 void servo_control_task(void *pvParameters) {
@@ -127,7 +127,7 @@ void initialiseSystem() {
     // Initialise the LoRaWAN driver without down-link buffer
     lora_driver_create(LORA_USART, NULL);
 
-    rcServoCreate();
+    // rcServoCreate();
 }
 
 /*-----------------------------------------------------------*/

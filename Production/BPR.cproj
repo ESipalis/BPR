@@ -147,12 +147,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="main.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <None Include="mainExample.c">
+    <None Include="main.c">
       <SubType>compile</SubType>
     </None>
+    <Compile Include="mainExample.c">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="FreeRTOS\Example\main.c">
       <SubType>compile</SubType>
     </None>
