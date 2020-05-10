@@ -14,11 +14,11 @@
 
 // Parameters for OTAA join - You have got these in a mail from IHA
 // Lowercase variants
-#define LORA_appEUI "d78039d42ee6237a"
-#define LORA_appKEY "99f3755169ee604cf8f0472c4a99daf7"
+// #define LORA_appEUI "d78039d42ee6237a"
+// #define LORA_appKEY "99f3755169ee604cf8f0472c4a99daf7"
 // Uppercase variants
-//#define LORA_appEUI "D78039D42EE6237A"
-//#define LORA_appKEY "99F3755169EE604CF8F0472C4A99DAF7"
+#define LORA_appEUI "D78039D42EE6237A"
+#define LORA_appKEY "99F3755169EE604CF8F0472C4A99DAF7"
 
 static char _out_buf[100];
 
