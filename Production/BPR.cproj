@@ -150,6 +150,9 @@
     <None Include="main.c">
       <SubType>compile</SubType>
     </None>
+    <Compile Include="loraWANHandler.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="mainExample.c">
       <SubType>compile</SubType>
     </Compile>
@@ -246,12 +249,6 @@
     <Compile Include="iot_drivers\display_7seg.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="iot_drivers\docs\example\loraWANHandler.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <None Include="iot_drivers\docs\example\main.c">
-      <SubType>compile</SubType>
-    </None>
     <Compile Include="iot_drivers\fifo.h">
       <SubType>compile</SubType>
     </Compile>
@@ -311,7 +308,6 @@
     <Folder Include="FreeRTOS\src\" />
     <Folder Include="iot_drivers\" />
     <Folder Include="iot_drivers\docs\" />
-    <Folder Include="iot_drivers\docs\example\" />
   </ItemGroup>
   <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
 </Project>
