@@ -147,15 +147,21 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="main.c">
+    <Compile Include="main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="drivers\hcsr04driver.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="drivers\hcsr04driver.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <None Include="loraWANHandler.c">
       <SubType>compile</SubType>
     </None>
-    <Compile Include="loraWANHandler.c">
+    <None Include="mainExample.c">
       <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="mainExample.c">
-      <SubType>compile</SubType>
-    </Compile>
+    </None>
     <None Include="FreeRTOS\Example\main.c">
       <SubType>compile</SubType>
     </None>
@@ -302,6 +308,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="drivers\" />
     <Folder Include="FreeRTOS\" />
     <Folder Include="FreeRTOS\Example\" />
     <Folder Include="FreeRTOS\FreeRTOSTraceDriver\" />

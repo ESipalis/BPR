@@ -24,6 +24,7 @@
 #include <lora_driver.h>
 
 #include <rcServo.h>
+#include "drivers/hcsr04driver.h"
 
 #define LORA_appEUI "d78039d42ee6237a"
 #define LORA_appKEY "99f3755169ee604cf8f0472c4a99daf7"
@@ -31,22 +32,33 @@
 
 // Prototype for LoRaWAN handler
 void lora_handler_create(UBaseType_t lora_handler_task_priority);
+
 void lora_init_task(void *pvParameters);
+
 void servo_control_task(void *pvParameters);
+
+void hcsr04_control_task(void *pvParameters);
 
 /*-----------------------------------------------------------*/
 void create_tasks_and_semaphores(void) {
-    xTaskCreate(
-            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
-            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-            , NULL);
+//    xTaskCreate(
+//            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
+//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
+//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+//            , NULL);
 
 //    xTaskCreate(
 //            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
 //            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
 //            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
 //            , NULL);
+
+    xTaskCreate(
+            hcsr04_control_task, (const portCHAR *) "HCSR04"  // A name just for humans
+            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
+            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+            , NULL);
+
 }
 
 void servo_control_task(void *pvParameters) {
@@ -62,6 +74,19 @@ void servo_control_task(void *pvParameters) {
         rcServoSet(0, 100);
         printf("Turned 3...\n");
         vTaskDelay(200);
+    }
+}
+
+static void hcsr04_measured(uint8_t sensorNo, uint32_t timerTicksPassed) {
+//    float distanceFloat = hcsr04_timerTicksToCentimeters(timerTicksPassed, 16000000);
+//    uint16_t distance = distanceFloat;
+    printf("Distance measured(%d): %d\n", sensorNo, timerTicksPassed);
+}
+
+void hcsr04_control_task(void *pvParameters) {
+    for(;;) {
+        hcsr04_initiateMeasurement(1, hcsr04_measured);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -103,7 +128,7 @@ void lora_init_task(void *pvParameters) {
         printf("Join network (try #%d): %s\n", tries++, lora_driver_map_return_code_to_text(join_result));
     }
 
-    if(join_result != LoRa_ACCEPTED) {
+    if (join_result != LoRa_ACCEPTED) {
         printf("Couldn't join the network, shutting down LoRaWAN handler task.\n");
         vTaskDelete(NULL);
         return;
@@ -121,11 +146,12 @@ void initialiseSystem() {
     // Let's create some tasks
     create_tasks_and_semaphores();
 
+    hcsr04_create();
     // vvvvvvvvvvvvvvvvv BELOW IS LoRaWAN initialisation vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     // Initialise the HAL layer and use 5 for LED driver priority
     hal_create(4);
     // Initialise the LoRaWAN driver without down-link buffer
-    lora_driver_create(LORA_USART, NULL);
+//    lora_driver_create(LORA_USART, NULL);
 
     // rcServoCreate();
 }
