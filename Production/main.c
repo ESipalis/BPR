@@ -47,11 +47,11 @@ void create_tasks_and_semaphores(void) {
 //            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
 //            , NULL);
 
-//    xTaskCreate(
-//            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
-//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-//            , NULL);
+    xTaskCreate(
+            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
+            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
+            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+            , NULL);
 
     xTaskCreate(
             hcsr04_control_task, (const portCHAR *) "HCSR04"  // A name just for humans
@@ -85,7 +85,7 @@ static void hcsr04_measured(uint8_t sensorNo, uint32_t timerTicksPassed) {
 
 void hcsr04_control_task(void *pvParameters) {
     for(;;) {
-        hcsr04_initiateMeasurement(1, hcsr04_measured);
+        hcsr04_initiate_measurement(1, hcsr04_measured);
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -137,6 +137,9 @@ void lora_init_task(void *pvParameters) {
 
 /*-----------------------------------------------------------*/
 void initialiseSystem() {
+    hcsr04_create();
+    hcsr04_power_up();
+
     // Set output ports for leds used in the example
     DDRA |= _BV(DDA0) | _BV(DDA7);
     // Initialise the trace-driver to be used together with the R2R-Network
@@ -146,14 +149,13 @@ void initialiseSystem() {
     // Let's create some tasks
     create_tasks_and_semaphores();
 
-    hcsr04_create();
     // vvvvvvvvvvvvvvvvv BELOW IS LoRaWAN initialisation vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     // Initialise the HAL layer and use 5 for LED driver priority
     hal_create(4);
     // Initialise the LoRaWAN driver without down-link buffer
 //    lora_driver_create(LORA_USART, NULL);
 
-    // rcServoCreate();
+     rcServoCreate();
 }
 
 /*-----------------------------------------------------------*/
