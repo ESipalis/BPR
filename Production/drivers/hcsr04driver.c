@@ -4,8 +4,23 @@
 #include <util/delay.h>
 #include <stdio.h>
 
-#define TRIGGER_PIN PK4
-#define ECHO_PIN PK2
+// Trigger pin definitions, assuming both trigger pins are connected to the same port
+#define DDR_TRIGGER DDRC
+#define PORT_TRIGGER PORTC
+#define PIN_TRIGGER_N1 PC0
+#define PIN_TRIGGER_N2 PC1
+
+
+// Echo pin definitions, assuming both echo pins are connected to the same port.
+#define PORT_ECHO PORTK
+#define DDR_ECHO DDRK
+#define PIN_ECHO PINK
+#define PIN_ECHO_N1 PK5
+#define PIN_ECHO_N2 PK7
+#define PCMSK_ECHO PCMSK2
+#define PCINT_ECHO_N1 PCINT21
+#define PCINT_ECHO_N2 PCINT23
+
 
 static volatile uint8_t numberOfTimerOverflows = 0;
 
@@ -13,20 +28,29 @@ static void (* volatile sensor1Callback)(uint8_t, uint32_t);
 
 static volatile uint8_t sensor1NumberOfTimerOverflows;
 static volatile uint16_t sensor1TimerValue;
-static volatile uint8_t sensor1Measuring = 0;
+static volatile uint8_t previousPIN_ECHO;
+
+// 48 <=> 176: PIN 3 = 128 = 2^7;;; PIN 3 = PK7
+// 160 <=> 128: PIN 5 = 32 = 2^5;;; PIN 5 = PK5
 
 void hcsr04_create() {
-    DDRK |= _BV(TRIGGER_PIN); // Set as output
-    PORTK &= ~_BV(TRIGGER_PIN); // Make sure it's LOW
+//    DDR_TRIGGER |= _BV(PIN_TRIGGER_N1) | _BV(PIN_TRIGGER_N2); // Set as output
+//    PORT_TRIGGER &= ~(_BV(PIN_TRIGGER_N1) | _BV(PIN_TRIGGER_N2)); // Make sure it's LOW
 
-    DDRK &= ~_BV(ECHO_PIN); // Set as input
-    PORTK |= _BV(ECHO_PIN); // Pull-up
+    DDRK &= ~(_BV(PK5) | _BV(PK7)); // Set as input
+    PORTK |= _BV(PK5) | _BV(PK7); // Pull-up
+//    DDR_ECHO &= ~(_BV(PIN_ECHO_N1) | _BV(PIN_ECHO_N2)); // Set as input
+//    PORT_ECHO |= _BV(PIN_ECHO_N1) | _BV(PIN_ECHO_N2); // Pull-up
 
-    PCMSK2 |= _BV(PCINT18); // Enable PCINT18, PK2
-    PCICR |= _BV(PCIE2); // Enable PCINT Register 2 vector
+    PCMSK2 |= _BV(PCINT21) | _BV(PCINT23); // Enable PCINTs
+    PCICR |= _BV(PCMSK2); // Enable PCINT Register 2 vector
+//    PCMSK_ECHO |= _BV(PCINT_ECHO_N1) | _BV(PCINT_ECHO_N2); // Enable PCINTs
+//    PCICR |= _BV(PCMSK_ECHO); // Enable PCINT Register 2 vector
 
     TIMSK1 = _BV(TOIE1); // Enable timer overflow interrupt
 
+
+    DDRA = 0xFF;
     printf("HCSR04 Create\n");
 }
 
@@ -40,16 +64,15 @@ void hcsr04_power_down() {
 
 void hcsr04_initiate_measurement(uint8_t sensorNumber, void (*callback)(uint8_t, uint32_t)) {
     if (sensorNumber == 1) {
-        sensor1Measuring = 0;
-//        PORTK |= _BV(ECHO_PIN); // Check if ISR triggers.
+        printf("M\n");
 //        if (sensor1Measuring) {
 //            printf("Already measuring...\n");
 //            return;
 //        }
         sensor1Callback = callback;
-        PORTK |= _BV(TRIGGER_PIN);
-        _delay_us(12);
-        PORTK &= ~_BV(TRIGGER_PIN);
+        PORT_TRIGGER |= _BV(PIN_TRIGGER_N1);
+        _delay_us(20);
+        PORT_TRIGGER &= ~_BV(PIN_TRIGGER_N1);
     }
 }
 
@@ -62,16 +85,21 @@ ISR(TIMER1_OVF_vect) {
 }
 
 ISR(PCINT2_vect) {
-    printf("T\n");
-    if(!sensor1Measuring) {
-        sensor1NumberOfTimerOverflows = numberOfTimerOverflows;
-        sensor1TimerValue = TCNT1;
-        sensor1Measuring = 1;
-    } else {
-        uint16_t overflows = (256 + numberOfTimerOverflows - sensor1NumberOfTimerOverflows) % 255;
-        uint32_t timerTicksPassed = 65536 * overflows + (TCNT1 - sensor1TimerValue);
-        sensor1Measuring = 0;
-        sensor1Callback(numberOfTimerOverflows, timerTicksPassed);
-    }
-
+    printf("I%d;%d\n", PINK, previousPIN_ECHO);
+    PORTA = PINK;
+//    if ((PIN_ECHO ^ previousPIN_ECHO) & _BV(PIN_ECHO_N1)) { // Echo pin 1 was the one that was changed
+//        if(!(PIN_ECHO & _BV(PIN_ECHO_N1))) { // If it's now HIGH
+//            sensor1NumberOfTimerOverflows = numberOfTimerOverflows;
+//            sensor1TimerValue = TCNT1;
+//        } else { // If it's now LOW
+//            uint16_t overflows = (256 + numberOfTimerOverflows - sensor1NumberOfTimerOverflows) % 255;
+//            uint32_t timerTicksPassed = 65536 * overflows + (TCNT1 - sensor1TimerValue);
+//            if (sensor1Callback != 0) {
+//                sensor1Callback(numberOfTimerOverflows, timerTicksPassed);
+//            }
+//        }
+//    } else {
+//
+//    }
+    previousPIN_ECHO = PINK;
 }

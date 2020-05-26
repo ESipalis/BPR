@@ -85,7 +85,7 @@ static void hcsr04_measured(uint8_t sensorNo, uint32_t timerTicksPassed) {
 
 void hcsr04_control_task(void *pvParameters) {
     for(;;) {
-        hcsr04_initiate_measurement(1, hcsr04_measured);
+//        hcsr04_initiate_measurement(1, hcsr04_measured);
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
