@@ -47,11 +47,11 @@ void create_tasks_and_semaphores(void) {
 //            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
 //            , NULL);
 
-    xTaskCreate(
-            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
-            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-            , NULL);
+//    xTaskCreate(
+//            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
+//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
+//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+//            , NULL);
 
     xTaskCreate(
             hcsr04_control_task, (const portCHAR *) "HCSR04"  // A name just for humans
@@ -137,8 +137,6 @@ void lora_init_task(void *pvParameters) {
 
 /*-----------------------------------------------------------*/
 void initialiseSystem() {
-    hcsr04_create();
-    hcsr04_power_up();
 
     // Set output ports for leds used in the example
     DDRA |= _BV(DDA0) | _BV(DDA7);
@@ -155,7 +153,9 @@ void initialiseSystem() {
     // Initialise the LoRaWAN driver without down-link buffer
 //    lora_driver_create(LORA_USART, NULL);
 
-     rcServoCreate();
+//     rcServoCreate();
+    hcsr04_create();
+    hcsr04_power_up();
 }
 
 /*-----------------------------------------------------------*/

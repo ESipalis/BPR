@@ -22,10 +22,12 @@ void hcsr04_create() {
     DDRK &= ~_BV(ECHO_PIN); // Set as input
     PORTK |= _BV(ECHO_PIN); // Pull-up
 
-    TIMSK1 = _BV(TOIE1); // Enable timer overflow interrupt
-
     PCMSK2 |= _BV(PCINT18); // Enable PCINT18, PK2
     PCICR |= _BV(PCIE2); // Enable PCINT Register 2 vector
+
+    TIMSK1 = _BV(TOIE1); // Enable timer overflow interrupt
+
+    printf("HCSR04 Create\n");
 }
 
 void hcsr04_power_up() {
