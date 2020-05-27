@@ -78,14 +78,15 @@ void servo_control_task(void *pvParameters) {
 }
 
 static void hcsr04_measured(uint8_t sensorNo, uint32_t timerTicksPassed) {
-//    float distanceFloat = hcsr04_timerTicksToCentimeters(timerTicksPassed, 16000000);
-//    uint16_t distance = distanceFloat;
-    printf("Distance measured(%d): %d\n", sensorNo, timerTicksPassed);
+    float distanceFloat = hcsr04_timer_ticks_to_centimeters(timerTicksPassed, 16000000);
+    uint16_t distance = distanceFloat;
+    printf("Distance measured(%d): %d\n", sensorNo, distance);
 }
 
 void hcsr04_control_task(void *pvParameters) {
     for(;;) {
-//        hcsr04_initiate_measurement(1, hcsr04_measured);
+        hcsr04_initiate_measurement(1, hcsr04_measured);
+        hcsr04_initiate_measurement(2, hcsr04_measured);
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
