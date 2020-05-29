@@ -30,6 +30,8 @@
 #define LORA_appKEY "99f3755169ee604cf8f0472c4a99daf7"
 #define LORA_JOIN_NETWORK_MAX_TRIES 7
 
+#include "util/debug_util.h"
+
 // Prototype for LoRaWAN handler
 void lora_handler_create(UBaseType_t lora_handler_task_priority);
 
@@ -62,31 +64,34 @@ void create_tasks_and_semaphores(void) {
 }
 
 void servo_control_task(void *pvParameters) {
+    vTaskDelay(500);
+    hcsr04_power_down();
+    vTaskDelay(500);
+    hcsr04_power_up();
     for (;;) {
         rcServoSet(0, -100);
-        printf("Turned 1...\n");
+        debugPrint("Turned 1...\n");
         vTaskDelay(200);
 
         rcServoSet(0, 0);
-        printf("Turned 2...\n");
+        debugPrint("Turned 2...\n");
         vTaskDelay(200);
 
         rcServoSet(0, 100);
-        printf("Turned 3...\n");
+        debugPrint("Turned 3...\n");
         vTaskDelay(200);
     }
 }
 
 static void hcsr04_measured(uint8_t sensorNo, uint32_t timerTicksPassed) {
-    float distanceFloat = hcsr04_timer_ticks_to_centimeters(timerTicksPassed, 16000000);
-    uint16_t distance = distanceFloat;
-    printf("Distance measured(%d): %d\n", sensorNo, distance);
+    uint16_t distance = hcsr04_timer_ticks_to_centimeters(timerTicksPassed, 16000000);
+    debugPrint("Distance measured(%d): %u\n", sensorNo, distance);
 }
 
 void hcsr04_control_task(void *pvParameters) {
-    for(;;) {
-        hcsr04_initiate_measurement(1, hcsr04_measured);
+    for (;;) {
         hcsr04_initiate_measurement(2, hcsr04_measured);
+        hcsr04_initiate_measurement(1, hcsr04_measured);
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -99,38 +104,38 @@ void lora_init_task(void *pvParameters) {
     lora_driver_flush_buffers(); // get rid of first version string from module after reset!
 
     e_LoRa_return_code_t factory_reset_result = lora_driver_rn2483_factory_reset();
-    printf("Factory reset: %s\n", lora_driver_map_return_code_to_text(factory_reset_result));
+    debugPrint("Factory reset: %s\n", lora_driver_map_return_code_to_text(factory_reset_result));
 
     e_LoRa_return_code_t configure_to_eu868_result = lora_driver_configure_to_eu868();
-    printf("Configure to EU868: %s\n", lora_driver_map_return_code_to_text(configure_to_eu868_result));
+    debugPrint("Configure to EU868: %s\n", lora_driver_map_return_code_to_text(configure_to_eu868_result));
 
     static char dev_eui[17];
     e_LoRa_return_code_t get_hweui_result = lora_driver_get_rn2483_hweui(dev_eui);
-    printf("Get HWEUI: %s; HWEUI: %s\n", lora_driver_map_return_code_to_text(get_hweui_result), dev_eui);
+    debugPrint("Get HWEUI: %s; HWEUI: %s\n", lora_driver_map_return_code_to_text(get_hweui_result), dev_eui);
 
     e_LoRa_return_code_t set_deveui_result = lora_driver_set_device_identifier(dev_eui);
-    printf("Set DevEUI => %s: %s\n", dev_eui, lora_driver_map_return_code_to_text(set_deveui_result));
+    debugPrint("Set DevEUI => %s: %s\n", dev_eui, lora_driver_map_return_code_to_text(set_deveui_result));
 
     e_LoRa_return_code_t set_otaa_identity_result = lora_driver_set_otaa_identity(LORA_appEUI, LORA_appKEY, dev_eui);
-    printf("Set OTAA Identity (appEUI: %s, appKEY: %s): %s\n", LORA_appEUI, LORA_appKEY, lora_driver_map_return_code_to_text(set_otaa_identity_result));
+    debugPrint("Set OTAA Identity (appEUI: %s, appKEY: %s): %s\n", LORA_appEUI, LORA_appKEY, lora_driver_map_return_code_to_text(set_otaa_identity_result));
 
     e_LoRa_return_code_t set_adaptive_data_rate_result = lora_driver_set_adaptive_data_rate(LoRa_ON);
-    printf("Set adaptive data rate => ON: %s\n", lora_driver_map_return_code_to_text(set_adaptive_data_rate_result));
+    debugPrint("Set adaptive data rate => ON: %s\n", lora_driver_map_return_code_to_text(set_adaptive_data_rate_result));
 
     e_LoRa_return_code_t set_receive_delay_result = lora_driver_set_receive_delay(500);
-    printf("Set receive delay => 500ms: %s\n", lora_driver_map_return_code_to_text(set_receive_delay_result));
+    debugPrint("Set receive delay => 500ms: %s\n", lora_driver_map_return_code_to_text(set_receive_delay_result));
 
     e_LoRa_return_code_t save_mac_result = lora_driver_save_mac();
-    printf("Save to mac: %s\n", lora_driver_map_return_code_to_text(save_mac_result));
+    debugPrint("Save to mac: %s\n", lora_driver_map_return_code_to_text(save_mac_result));
 
     uint8_t tries = 1;
     e_LoRa_return_code_t join_result;
     while ((join_result = lora_driver_join(LoRa_OTAA)) != LoRa_ACCEPTED && tries <= LORA_JOIN_NETWORK_MAX_TRIES) {
-        printf("Join network (try #%d): %s\n", tries++, lora_driver_map_return_code_to_text(join_result));
+        debugPrint("Join network (try #%d): %s\n", tries++, lora_driver_map_return_code_to_text(join_result));
     }
 
     if (join_result != LoRa_ACCEPTED) {
-        printf("Couldn't join the network, shutting down LoRaWAN handler task.\n");
+        debugPrint("Couldn't join the network, shutting down LoRaWAN handler task.\n");
         vTaskDelete(NULL);
         return;
     }
@@ -155,14 +160,16 @@ void initialiseSystem() {
 //    lora_driver_create(LORA_USART, NULL);
 
 //     rcServoCreate();
-    hcsr04_create();
+    hcsr04_create(2);
+    hcsr04_add(1, &PORTC, PC0, PK7);
+    hcsr04_add(2, &PORTC, PC1, PK5);
     hcsr04_power_up();
 }
 
 /*-----------------------------------------------------------*/
 int main(void) {
     initialiseSystem(); // Must be done as the very first thing!!
-    printf("Program Started!!\n");
+    debugPrint("Program Started!!\n");
     vTaskStartScheduler(); // Initialise and run the freeRTOS scheduler. Execution should never return from here.
 
     /* Replace with your application code */

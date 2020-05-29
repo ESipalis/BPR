@@ -12,4 +12,4 @@ include_directories(iot_drivers)
 
 
 add_executable(BPR
-        main.c drivers/hcsr04driver.c drivers/hcsr04driver.h)
+        main.c drivers/hcsr04driver.c drivers/hcsr04driver.h util/debug_util.h util/debug_util.c)
