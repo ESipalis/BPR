@@ -28,6 +28,7 @@ namespace CommonServices.DetectionSystemServices.Storage
         {
             return await _context.Notification
                 .Where(notification => notification.ObjectDetectionNotification != null && notification.ObjectDetectionNotification.SentToKommune == false)
+                .Include(notification => notification.ObjectDetectionNotification)
                 .ToListAsync();
         }
 

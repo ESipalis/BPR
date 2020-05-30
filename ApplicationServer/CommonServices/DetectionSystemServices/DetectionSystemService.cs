@@ -16,15 +16,20 @@ namespace CommonServices.DetectionSystemServices
         private readonly IKommuneService _kommuneService;
         private readonly ILogger<DetectionSystemService> _logger;
 
-        public DetectionSystemService(IStorage storage, IKommuneService kommuneService)
+        public DetectionSystemService(IStorage storage, IKommuneService kommuneService, ILogger<DetectionSystemService> logger)
         {
             _storage = storage;
             _kommuneService = kommuneService;
+            _logger = logger;
         }
 
         public async Task ResendFailedNotifications()
         {
             List<Notification> failedNotifications = await _storage.GetFailedNotifications();
+            if (!failedNotifications.Any())
+            {
+                return;
+            }
             List<NotificationToKommune> notificationsToKommune = DetectionSystemServiceUtil.NotificationsToKommuneNotifications(failedNotifications);
             try
             {
