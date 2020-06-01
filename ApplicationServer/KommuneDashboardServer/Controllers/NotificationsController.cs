@@ -24,7 +24,7 @@ namespace KommuneDashboardServer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ReceiveNotifications(NotificationDto[] notifications)
+        public IActionResult ReceiveNotifications(NotificationDto[] notifications)
         {
             Console.WriteLine(JsonSerializer.Serialize(notifications, new JsonSerializerOptions()
             {

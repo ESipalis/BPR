@@ -38,12 +38,12 @@ namespace CommonServices.DetectionSystemServices.Storage
             await _context.SaveChangesAsync();
         }
 
-        public async Task SetNotificationsAsSent(IEnumerable<int> notificationIds)
+        public async Task SetNotificationStatuses(IEnumerable<int> notificationIds, bool sentToKommune)
         {
             List<Notification> notifications = await _context.Notification.Where(notification => notificationIds.Contains(notification.NotificationId)).ToListAsync();
             foreach (Notification notification in notifications)
             {
-                notification.ObjectDetectionNotification.SentToKommune = true;
+                notification.ObjectDetectionNotification.SentToKommune = sentToKommune;
             }
 
             await _context.SaveChangesAsync();
@@ -53,7 +53,10 @@ namespace CommonServices.DetectionSystemServices.Storage
         {
             foreach (ConfigureDevice configureDevice in configurations)
             {
-                Device device = await _context.Device.FindAsync(configureDevice.DeviceEui);
+                Device device = await _context.Device
+                    .Include(x => x.Configuration)
+                    .Where(x => x.DeviceEui == configureDevice.DeviceEui)
+                    .FirstAsync();
                 device.Configuration.HeartbeatPeriodDays = configureDevice.Configuration.HeartbeatPeriodDays;
                 device.Configuration.ScanMinuteOfTheDay = configureDevice.Configuration.ScanMinuteOfTheDay;
                 device.Configuration.Status = configureDevice.Configuration.Status;
@@ -62,9 +65,14 @@ namespace CommonServices.DetectionSystemServices.Storage
             await _context.SaveChangesAsync();
         }
 
+        public async Task<Device> GetDevice(string deviceEui)
+        {
+            return await _context.Device.Where(device => device.DeviceEui == deviceEui).FirstOrDefaultAsync();
+        }
+
         public async Task UpdateDeviceConfigurationStatus(string deviceEui, ConfigurationStatus configurationStatus)
         {
-            Device device = await _context.Device.FindAsync(deviceEui);
+            Device device = await _context.Device.Where(x => x.DeviceEui == deviceEui).FirstAsync();
             device.Configuration.Status = configurationStatus;
             await _context.SaveChangesAsync();
         }
@@ -73,7 +81,7 @@ namespace CommonServices.DetectionSystemServices.Storage
         {
             foreach (string deviceEui in deviceEuis)
             {
-                Device device = await _context.Device.FindAsync(deviceEui);
+                Device device = await _context.Device.Where(x => x.DeviceEui == deviceEui).FirstAsync();
                 device.Status.SentToKommune = true;
             }
 
@@ -82,7 +90,10 @@ namespace CommonServices.DetectionSystemServices.Storage
 
         public async Task RefreshDeviceStatuses()
         {
-            List<Device> devices = await _context.Device.ToListAsync();
+            List<Device> devices = await _context.Device
+                .Include(device => device.Configuration)
+                .Include(device => device.Status)
+                .ToListAsync();
             long currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             foreach (Device device in devices)
             {
@@ -123,6 +134,7 @@ namespace CommonServices.DetectionSystemServices.Storage
         public async Task<List<UnsentDeviceStatus>> GetUnsentDeviceStatuses()
         {
             return await _context.Device
+                .Include(device => device.Status)
                 .Where(device => !device.Status.SentToKommune)
                 .Select(device => new UnsentDeviceStatus
                 {

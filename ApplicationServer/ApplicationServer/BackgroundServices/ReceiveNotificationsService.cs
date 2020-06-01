@@ -1,9 +1,11 @@
 ﻿using System;
-using System.IO;
-using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CommonServices.DetectionSystemServices;
+using CommonServices.EndNodeCommunicator;
+using CommonServices.EndNodeCommunicator.Models;
+using Data;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace ApplicationServer.BackgroundServices
@@ -12,52 +14,55 @@ namespace ApplicationServer.BackgroundServices
     {
         private static readonly string Connection = "connectionstring";
 
+        private readonly IServiceProvider _serviceProvider;
+
+        public ReceiveNotificationsService(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
-                using (var socket = new ClientWebSocket())
-                    try
-                    {
-                        await socket.ConnectAsync(new Uri(Connection), stoppingToken);
-
-                        await Send(socket, "data", stoppingToken);
-                        await Receive(socket, stoppingToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"ERROR - {ex.Message}");
-                    }
+            using IServiceScope scope = _serviceProvider.CreateScope();
+            var endNodeCommunicator = scope.ServiceProvider.GetRequiredService<IEndNodeCommunicator>();
+            endNodeCommunicator.AddListener(HandleReceivedMessage);
+            await endNodeCommunicator.Start(stoppingToken);
         }
 
-        private async Task Send(ClientWebSocket socket, string data, CancellationToken stoppingToken)
+        private async Task HandleReceivedMessage(EndNodeMessage message)
         {
-            await socket.SendAsync(Encoding.UTF8.GetBytes(data), WebSocketMessageType.Text, true, stoppingToken);
-        }
+            IServiceScope scope = _serviceProvider.CreateScope();
+            var detectionSystemService = scope.ServiceProvider.GetRequiredService<DetectionSystemService>();
 
-        private async Task Receive(ClientWebSocket socket, CancellationToken stoppingToken)
-        {
-            var buffer = new ArraySegment<byte>(new byte[2048]);
-            while (!stoppingToken.IsCancellationRequested)
+            switch (message.MessageType)
             {
-                WebSocketReceiveResult result;
-                using (var ms = new MemoryStream())
-                {
-                    do
+                case EndNodeMessageType.SendRequestAck:
+                    var newStatus = ((SendRequestAckMessage) message).Successful ? ConfigurationStatus.AcknowledgedByNetwork : ConfigurationStatus.ErrorByNetwork;
+                    await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, newStatus);
+                    break;
+                case EndNodeMessageType.GatewayConfirmation:
+                    await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.SentToGateway);
+                    break;
+                case EndNodeMessageType.UplinkMessage:
+                    var uplinkMessage = (UplinkDataMessage) message;
+                    if (uplinkMessage.Ack)
                     {
-                        result = await socket.ReceiveAsync(buffer, stoppingToken);
-                        ms.Write(buffer.Array, buffer.Offset, result.Count);
-                    } while (!result.EndOfMessage);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                        break;
-
-                    ms.Seek(0, SeekOrigin.Begin);
-                    using (var reader = new StreamReader(ms, Encoding.UTF8))
-                        Console.WriteLine(await reader.ReadToEndAsync());
-                }
+                        await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.Acknowledged);
+                    }
+                    
+                    await detectionSystemService.SendAndSaveNotifications(new []
+                    {
+                        new UplinkMessage
+                        {
+                            Data = uplinkMessage.Data,
+                            DeviceEui = uplinkMessage.DeviceEui,
+                            Timestamp = uplinkMessage.Timestamp
+                        }
+                    });
+                    break;
             }
-
-            ;
         }
+        
+        
     }
 }

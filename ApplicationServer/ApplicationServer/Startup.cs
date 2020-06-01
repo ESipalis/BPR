@@ -35,7 +35,7 @@ namespace ApplicationServer
             services.AddDbContext<DetectionSystemDbContext>(builder => { builder.UseSqlite(Configuration.GetConnectionString("SQLite")); });
             services.AddScoped<IStorage, StorageDatabase>();
             services.AddScoped<IKommuneService, KommuneServiceHttp>();
-            services.AddScoped<IEndNodeCommunicator, EndNodeCommunicatorWebSocket>();
+            services.AddSingleton<IEndNodeCommunicator, EndNodeCommunicatorWebSocket>();
             services.AddSingleton<EndNodeCommunicatorWebSocketConfiguration>(services => new EndNodeCommunicatorWebSocketConfiguration
             {
                 Url = "wss://echo.websocket.org"

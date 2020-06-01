@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CommonServices.DetectionSystemServices.KommuneService;
 using CommonServices.DetectionSystemServices.Storage;
@@ -30,11 +32,12 @@ namespace CommonServices.DetectionSystemServices
             {
                 return;
             }
+
             List<NotificationToKommune> notificationsToKommune = DetectionSystemServiceUtil.NotificationsToKommuneNotifications(failedNotifications);
             try
             {
                 await _kommuneService.SendNotifications(notificationsToKommune);
-                await _storage.SetNotificationsAsSent(notificationsToKommune.Select(x => x.NotificationId));
+                await _storage.SetNotificationStatuses(notificationsToKommune.Select(x => x.NotificationId), true);
             }
             catch (KommuneCommunicationException e)
             {
@@ -54,6 +57,7 @@ namespace CommonServices.DetectionSystemServices
                 DeviceUnresponsive = x.DeviceUnresponsive,
                 NotificationId = x.NotificationId
             }).ToList();
+            _logger.LogInformation("Sending: " + JsonSerializer.Serialize(deviceStatusNotifications));
             try
             {
                 await _kommuneService.SendNotifications(deviceStatusNotifications);
@@ -65,14 +69,59 @@ namespace CommonServices.DetectionSystemServices
             }
         }
 
-        public async Task SendAndSaveNotifications(IEnumerable<Notification> notifications)
+        public async Task SendAndSaveNotifications(IEnumerable<UplinkMessage> uplinkMessageEnumerable)
         {
-            List<Notification> notificationList = notifications.ToList();
-            List<NotificationToKommune> notificationsToKommune = DetectionSystemServiceUtil.NotificationsToKommuneNotifications(notificationList);
+            List<UplinkMessage> uplinkMessages = uplinkMessageEnumerable.ToList();
+            List<Notification> notifications = uplinkMessages.Select(async uplinkMessage =>
+            {
+                NotificationType notificationType;
+                ObjectDetectionNotification objectDetectionNotification = null;
+                if (uplinkMessage.Data.Length == 0)
+                {
+                    notificationType = NotificationType.Heartbeat;
+                }
+                else
+                {
+                    notificationType = NotificationType.ObjectDetection;
+                    ushort? widthCentimeters = ushort.Parse(uplinkMessage.Data, NumberStyles.HexNumber);
+                    ObjectDetection objectDetection = widthCentimeters switch
+                    {
+                        0 => ObjectDetection.Removed,
+                        ushort.MaxValue => ObjectDetection.Detected,
+                        _ => ObjectDetection.DetectedWithSize
+                    };
+                    if (objectDetection != ObjectDetection.DetectedWithSize)
+                    {
+                        widthCentimeters = null;
+                    }
+
+                    objectDetectionNotification = new ObjectDetectionNotification
+                    {
+                        ObjectDetection = objectDetection,
+                        WidthCentimeters = widthCentimeters,
+                        SentToKommune = false
+                    };
+                }
+
+                string address = (await _storage.GetDevice(uplinkMessage.DeviceEui))?.Address ?? "";
+                return new Notification
+                {
+                    Address = address,
+                    Timestamp = uplinkMessage.Timestamp,
+                    Type = notificationType,
+                    DeviceEui = uplinkMessage.DeviceEui,
+                    ObjectDetectionNotification = objectDetectionNotification
+                };
+            })
+                .Select(task => task.Result)
+                .ToList();
+            
+
+            List<NotificationToKommune> notificationsToKommune = DetectionSystemServiceUtil.NotificationsToKommuneNotifications(notifications);
             try
             {
                 await _kommuneService.SendNotifications(notificationsToKommune);
-                foreach (Notification notification in notificationList)
+                foreach (Notification notification in notifications)
                 {
                     notification.ObjectDetectionNotification.SentToKommune = true;
                 }
@@ -80,12 +129,13 @@ namespace CommonServices.DetectionSystemServices
             catch (Exception e)
             {
                 _logger.LogWarning("Kommune communication exception", e);
-                foreach (Notification notification in notificationList)
+                foreach (Notification notification in notifications)
                 {
                     notification.ObjectDetectionNotification.SentToKommune = false;
                 }
             }
-            await _storage.AddNotifications(notificationList);
+
+            await _storage.AddNotifications(notifications);
         }
 
         public async Task RegisterDevices(IEnumerable<Device> devices)

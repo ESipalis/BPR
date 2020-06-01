@@ -7,8 +7,9 @@ namespace CommonServices.DetectionSystemServices.Storage
     public interface IStorage
     {
         Task AddNotifications(IEnumerable<Notification> notifications);
-        Task SetNotificationsAsSent(IEnumerable<int> notificationIds);
+        Task SetNotificationStatuses(IEnumerable<int> notificationIds, bool sentToKommune);
         Task<List<Notification>> GetFailedNotifications();
+        Task<Device> GetDevice(string deviceEui);
         Task AddDevices(IEnumerable<Device> devices);
         Task UpdateDeviceConfigurations(IEnumerable<ConfigureDevice> configurations);
         Task UpdateDeviceConfigurationStatus(string deviceEui, ConfigurationStatus configurationStatus);

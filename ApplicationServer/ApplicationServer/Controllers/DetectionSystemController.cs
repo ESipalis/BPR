@@ -29,7 +29,7 @@ namespace ApplicationServer.Controllers
             _endNodeCommunicator = endNodeCommunicator;
         }
 
-        [HttpPost]
+        [HttpPost("configurations")]
         public async Task<IActionResult> ConfigureDevices(ConfigurationDto[] configurations)
         {
             List<ConfigureDevice> configureDevices = new List<ConfigureDevice>();
@@ -65,17 +65,18 @@ namespace ApplicationServer.Controllers
             return Ok();
         }
 
-        [HttpPost]
+        [HttpPost("devices")]
         public async Task<IActionResult> RegisterDevices(RegisterDeviceDto[] deviceDtos)
         {
             List<Device> devices = deviceDtos.Select(dto => new Device
             {
+                DeviceEui = dto.DeviceEui,
+                Address = dto.Address,
                 Status = new DeviceStatus
                 {
                     DeviceWorking = true,
                     SentToKommune = true
                 },
-                Address = dto.Address,
                 Configuration = new DeviceConfiguration
                 {
                     HeartbeatPeriodDays = dto.Configuration.HeartbeatPeriodDays,
