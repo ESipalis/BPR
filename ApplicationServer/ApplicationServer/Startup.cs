@@ -38,7 +38,7 @@ namespace ApplicationServer
             services.AddSingleton<IEndNodeCommunicator, EndNodeCommunicatorWebSocket>();
             services.AddSingleton<EndNodeCommunicatorWebSocketConfiguration>(services => new EndNodeCommunicatorWebSocketConfiguration
             {
-                Url = "wss://echo.websocket.org"
+                Url = "wss://iotnet.teracom.dk/app?token=vnoStQAAABFpb3RuZXQudGVyYWNvbS5ka6d35cRAbFovEVngP56O9O0="
             });
             services.AddHttpClient<KommuneHttpClient>(httpClient =>
             {

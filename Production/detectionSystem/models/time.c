@@ -13,6 +13,7 @@ struct time {
 detection_system_time_t create() {
     detection_system_time_t time = calloc(1, sizeof(*time));
     time->mutex = xSemaphoreCreateMutex();
+    return time;
 }
 
 void set_minute_of_the_day(detection_system_time_t time, uint16_t minuteOfTheDay) {

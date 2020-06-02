@@ -13,6 +13,7 @@ struct configuration {
 configuration_t create() {
     configuration_t configuration = calloc(1, sizeof(*configuration));
     configuration->mutex = xSemaphoreCreateMutex();
+    return configuration;
 }
 
 void set_scan_minute_of_the_day(configuration_t self, uint16_t scan_minute_of_the_day) {

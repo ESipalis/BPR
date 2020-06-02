@@ -1,5 +1,5 @@
-#ifndef BPR_EXECUTIONHANDLER_H
-#define BPR_EXECUTIONHANDLER_H
+#ifndef BPR_EXECUTION_HANDLER_H
+#define BPR_EXECUTION_HANDLER_H
 
 #include <ATMEGA_FreeRTOS.h>
 #include <semphr.h>
@@ -17,4 +17,4 @@ typedef struct execution_handler_task_parameters {
 
 void create_execution_handler_task(freertos_task_parameters task_parameters, execution_handler_task_parameters* function_parameters, TaskHandle_t* task_handle);
 
-#endif //BPR_EXECUTIONHANDLER_H
+#endif //BPR_EXECUTION_HANDLER_H

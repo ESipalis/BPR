@@ -35,8 +35,11 @@ namespace CommonServices.EndNodeCommunicator
                 try
                 {
                     await socket.ConnectAsync(new Uri(_configuration.Url), stoppingToken);
+                    _logger.LogInformation("Connected to the web socket");
 
+                    _logger.LogInformation("Sending messages...");
                     await SendNextMessage(socket, stoppingToken);
+                    _logger.LogInformation("Listening for messages...");
                     await ListenForMessages(socket, stoppingToken);
                 }
                 catch (Exception ex)
@@ -53,9 +56,19 @@ namespace CommonServices.EndNodeCommunicator
                 return;
             }
 
-            if (_messagesToSend.TryDequeue(out DownlinkDataMessage message))
+            while (_messagesToSend.TryDequeue(out DownlinkDataMessage message))
             {
-                await socket.SendAsync(Encoding.UTF8.GetBytes(""), WebSocketMessageType.Text, true, stoppingToken);
+                var downlinkMessage = new
+                {
+                    Cmd = "tx",
+                    Eui = message.DeviceEui,
+                    Port = 1,
+                    Confirmed = message.Confirmed,
+                    Data = message.Data
+                };
+                byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(downlinkMessage);
+                _logger.LogInformation("Sending message: " + JsonSerializer.Serialize(downlinkMessage));
+                await socket.SendAsync(bytes, WebSocketMessageType.Text, true, stoppingToken);
             }
         }
 
@@ -79,6 +92,7 @@ namespace CommonServices.EndNodeCommunicator
             ms.Seek(0, SeekOrigin.Begin);
             using var reader = new StreamReader(ms, Encoding.UTF8);
             string messageAsString = await reader.ReadToEndAsync();
+            _logger.LogInformation("Read message from websocket:" + messageAsString);
 
             EndNodeMessage message = DeserializeMessage(messageAsString);
             if (message != null)

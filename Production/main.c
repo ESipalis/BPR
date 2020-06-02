@@ -31,43 +31,39 @@
 #define LORA_JOIN_NETWORK_MAX_TRIES 7
 
 #include "util/debug_util.h"
-
-// Prototype for LoRaWAN handler
-void lora_handler_create(UBaseType_t lora_handler_task_priority);
+#include "detectionSystem/tasks/uplink_handler.h"
+#include "detectionSystem/tasks/downlink_handler.h"
+#include "detectionSystem/models/uplink_message.h"
 
 void lora_init_task(void *pvParameters);
-
 void servo_control_task(void *pvParameters);
-
 void hcsr04_control_task(void *pvParameters);
+
+QueueHandle_t uplink_message_queue;
+MessageBufferHandle_t downlink_message_buffer;
+configuration_t configuration;
 
 /*-----------------------------------------------------------*/
 void create_tasks_and_semaphores(void) {
-//    xTaskCreate(
-//            lora_init_task, (const portCHAR *) "Lora"  // A name just for humans
-//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-//            , NULL);
+    uplink_message_queue = xQueueCreate(10, sizeof(uplink_message_t));
+    downlink_message_buffer = xMessageBufferCreate(10 * (sizeof(lora_payload_t) + sizeof(size_t)));
+    configuration = create();
 
-//    xTaskCreate(
-//            servo_control_task, (const portCHAR *) "Lora"  // A name just for humans
-//            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-//            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-//            , NULL);
+    static uplink_handler_task_parameters uplinkHandlerTaskParameters;
+    uplinkHandlerTaskParameters.uplink_message_queue = uplink_message_queue;
+    uplinkHandlerTaskParameters.loraAppEui = LORA_appEUI;
+    uplinkHandlerTaskParameters.loraAppKey = LORA_appKEY;
+    uplinkHandlerTaskParameters.maxJoinNetworkTries = LORA_JOIN_NETWORK_MAX_TRIES;
+    freertos_task_parameters taskParameters = {"", configMINIMAL_STACK_SIZE, 3};
+    create_uplink_handler_task(taskParameters, &uplinkHandlerTaskParameters, NULL);
 
-    xTaskCreate(
-            hcsr04_control_task, (const portCHAR *) "HCSR04"  // A name just for humans
-            , configMINIMAL_STACK_SIZE  // This stack size can be checked & adjusted by reading the Stack Highwater
-            , NULL, 3  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-            , NULL);
-
+    static downlink_handler_task_parameters downlinkHandlerTaskParameters;
+    downlinkHandlerTaskParameters.downlink_message_buffer = downlink_message_buffer;
+    downlinkHandlerTaskParameters.configuration = configuration;
+    create_downlink_handler_task(taskParameters, &downlinkHandlerTaskParameters, NULL);
 }
 
 void servo_control_task(void *pvParameters) {
-    vTaskDelay(500);
-    hcsr04_power_down();
-    vTaskDelay(500);
-    hcsr04_power_up();
     for (;;) {
         rcServoSet(0, -100);
         debugPrint("Turned 1...\n");
@@ -96,74 +92,23 @@ void hcsr04_control_task(void *pvParameters) {
     }
 }
 
-void lora_init_task(void *pvParameters) {
-    lora_driver_reset_rn2483(1); // Activate reset line
-    vTaskDelay(2);
-    lora_driver_reset_rn2483(0); // Release reset line
-    vTaskDelay(150); // Wait for tranceiver module to wake up after reset
-    lora_driver_flush_buffers(); // get rid of first version string from module after reset!
-
-    e_LoRa_return_code_t factory_reset_result = lora_driver_rn2483_factory_reset();
-    debugPrint("Factory reset: %s\n", lora_driver_map_return_code_to_text(factory_reset_result));
-
-    e_LoRa_return_code_t configure_to_eu868_result = lora_driver_configure_to_eu868();
-    debugPrint("Configure to EU868: %s\n", lora_driver_map_return_code_to_text(configure_to_eu868_result));
-
-    static char dev_eui[17];
-    e_LoRa_return_code_t get_hweui_result = lora_driver_get_rn2483_hweui(dev_eui);
-    debugPrint("Get HWEUI: %s; HWEUI: %s\n", lora_driver_map_return_code_to_text(get_hweui_result), dev_eui);
-
-    e_LoRa_return_code_t set_deveui_result = lora_driver_set_device_identifier(dev_eui);
-    debugPrint("Set DevEUI => %s: %s\n", dev_eui, lora_driver_map_return_code_to_text(set_deveui_result));
-
-    e_LoRa_return_code_t set_otaa_identity_result = lora_driver_set_otaa_identity(LORA_appEUI, LORA_appKEY, dev_eui);
-    debugPrint("Set OTAA Identity (appEUI: %s, appKEY: %s): %s\n", LORA_appEUI, LORA_appKEY, lora_driver_map_return_code_to_text(set_otaa_identity_result));
-
-    e_LoRa_return_code_t set_adaptive_data_rate_result = lora_driver_set_adaptive_data_rate(LoRa_ON);
-    debugPrint("Set adaptive data rate => ON: %s\n", lora_driver_map_return_code_to_text(set_adaptive_data_rate_result));
-
-    e_LoRa_return_code_t set_receive_delay_result = lora_driver_set_receive_delay(500);
-    debugPrint("Set receive delay => 500ms: %s\n", lora_driver_map_return_code_to_text(set_receive_delay_result));
-
-    e_LoRa_return_code_t save_mac_result = lora_driver_save_mac();
-    debugPrint("Save to mac: %s\n", lora_driver_map_return_code_to_text(save_mac_result));
-
-    uint8_t tries = 1;
-    e_LoRa_return_code_t join_result;
-    while ((join_result = lora_driver_join(LoRa_OTAA)) != LoRa_ACCEPTED && tries <= LORA_JOIN_NETWORK_MAX_TRIES) {
-        debugPrint("Join network (try #%d): %s\n", tries++, lora_driver_map_return_code_to_text(join_result));
-    }
-
-    if (join_result != LoRa_ACCEPTED) {
-        debugPrint("Couldn't join the network, shutting down LoRaWAN handler task.\n");
-        vTaskDelete(NULL);
-        return;
-    }
-}
-
 /*-----------------------------------------------------------*/
 void initialiseSystem() {
-
-    // Set output ports for leds used in the example
-    DDRA |= _BV(DDA0) | _BV(DDA7);
-    // Initialise the trace-driver to be used together with the R2R-Network
-    trace_init();
     // Make it possible to use stdio on COM port 0 (USB) on Arduino board - Setting 57600,8,N,1
     stdioCreate(ser_USART0);
-    // Let's create some tasks
+
     create_tasks_and_semaphores();
 
-    // vvvvvvvvvvvvvvvvv BELOW IS LoRaWAN initialisation vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     // Initialise the HAL layer and use 5 for LED driver priority
     hal_create(4);
     // Initialise the LoRaWAN driver without down-link buffer
-//    lora_driver_create(LORA_USART, NULL);
+    lora_driver_create(LORA_USART, downlink_message_buffer);
 
 //     rcServoCreate();
-    hcsr04_create(2);
-    hcsr04_add(1, &PORTC, PC0, PK7);
-    hcsr04_add(2, &PORTC, PC1, PK5);
-    hcsr04_power_up();
+//    hcsr04_create(2);
+//    hcsr04_add(1, &PORTC, PC0, PK7);
+//    hcsr04_add(2, &PORTC, PC1, PK5);
+//    hcsr04_power_up();
 }
 
 /*-----------------------------------------------------------*/
