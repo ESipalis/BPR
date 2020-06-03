@@ -57,7 +57,7 @@ namespace ApplicationServer.Controllers
                 {
                     Confirmed = true,
                     DeviceEui = configureDevice.DeviceEui,
-                    Data = ConfigurationToDataString(configureDevice.Configuration.ScanMinuteOfTheDay, configureDevice.Configuration.HeartbeatPeriodDays)
+                    Data = DetectionSystemServiceUtil.ConfigurationToDataString(configureDevice.Configuration.ScanMinuteOfTheDay, configureDevice.Configuration.HeartbeatPeriodDays)
                 });
                 await _detectionSystemService.SetDeviceConfigurationStatus(configureDevice.DeviceEui, ConfigurationStatus.SentToNetwork);
             }
@@ -92,17 +92,12 @@ namespace ApplicationServer.Controllers
                 {
                     Confirmed = true,
                     DeviceEui = device.DeviceEui,
-                    Data = ConfigurationToDataString(device.Configuration.ScanMinuteOfTheDay, device.Configuration.HeartbeatPeriodDays)
+                    Data = DetectionSystemServiceUtil.ConfigurationToDataString(device.Configuration.ScanMinuteOfTheDay, device.Configuration.HeartbeatPeriodDays)
                 });
                 await _detectionSystemService.SetDeviceConfigurationStatus(device.DeviceEui, ConfigurationStatus.SentToNetwork);
             }
 
             return Ok();
-        }
-
-        private static string ConfigurationToDataString(short scanMinuteOfTheDay, byte heartbeatPeriodDays)
-        {
-            return scanMinuteOfTheDay.ToString("X") + heartbeatPeriodDays.ToString("X");
         }
     }
 }

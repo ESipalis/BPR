@@ -38,5 +38,10 @@ namespace CommonServices.DetectionSystemServices
             return notificationsToKommune.ToList();
         }
         
+        public static string ConfigurationToDataString(short scanMinuteOfTheDay, byte heartbeatPeriodDays)
+        {
+            return scanMinuteOfTheDay.ToString("X2") + heartbeatPeriodDays.ToString("X2");
+        }
+        
     }
 }

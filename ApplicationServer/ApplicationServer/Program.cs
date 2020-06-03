@@ -23,8 +23,8 @@ namespace ApplicationServer
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
                 .ConfigureServices(services =>
                 {
-                    services.AddHostedService<ResendNotificationService>();
-                    services.AddHostedService<SendDeviceStatusesService>();
+                    // services.AddHostedService<ResendNotificationService>();
+                    // services.AddHostedService<SendDeviceStatusesService>();
                     services.AddHostedService<ReceiveNotificationsService>();
                 });
     }

@@ -10,7 +10,7 @@ struct configuration {
     SemaphoreHandle_t mutex;
 };
 
-configuration_t create() {
+configuration_t configuration_create() {
     configuration_t configuration = calloc(1, sizeof(*configuration));
     configuration->mutex = xSemaphoreCreateMutex();
     return configuration;

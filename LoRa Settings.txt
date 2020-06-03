@@ -1,0 +1,5 @@
+Device EUI: 0004A30B00219CB5
+Application EUI: d78039d42ee6237a
+Application Key: 99f3755169ee604cf8f0472c4a99daf7
+
+Web Socket for output: wss://iotnet.teracom.dk/app?token=vnoStQAAABFpb3RuZXQudGVyYWNvbS5ka6d35cRAbFovEVngP56O9O0=

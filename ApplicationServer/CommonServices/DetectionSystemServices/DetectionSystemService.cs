@@ -45,6 +45,11 @@ namespace CommonServices.DetectionSystemServices
             }
         }
 
+        public async Task<Device> GetDevice(string deviceEui)
+        {
+            return await _storage.GetDevice(deviceEui);
+        }
+
         public async Task RefreshAndSendDeviceStatuses()
         {
             await _storage.RefreshDeviceStatuses();

@@ -67,7 +67,11 @@ namespace CommonServices.DetectionSystemServices.Storage
 
         public async Task<Device> GetDevice(string deviceEui)
         {
-            return await _context.Device.Where(device => device.DeviceEui == deviceEui).FirstOrDefaultAsync();
+            return await _context.Device
+                .Include(device => device.Configuration)
+                .Include(device => device.Status)
+                .Where(device => device.DeviceEui == deviceEui)
+                .FirstOrDefaultAsync();
         }
 
         public async Task UpdateDeviceConfigurationStatus(string deviceEui, ConfigurationStatus configurationStatus)

@@ -44,10 +44,10 @@ MessageBufferHandle_t downlink_message_buffer;
 configuration_t configuration;
 
 /*-----------------------------------------------------------*/
-void create_tasks_and_semaphores(void) {
+void initialize_freertos_stuff(void) {
     uplink_message_queue = xQueueCreate(10, sizeof(uplink_message_t));
     downlink_message_buffer = xMessageBufferCreate(10 * (sizeof(lora_payload_t) + sizeof(size_t)));
-    configuration = create();
+    configuration = configuration_create();
 
     static uplink_handler_task_parameters uplinkHandlerTaskParameters;
     uplinkHandlerTaskParameters.uplink_message_queue = uplink_message_queue;
@@ -97,7 +97,7 @@ void initialiseSystem() {
     // Make it possible to use stdio on COM port 0 (USB) on Arduino board - Setting 57600,8,N,1
     stdioCreate(ser_USART0);
 
-    create_tasks_and_semaphores();
+    initialize_freertos_stuff();
 
     // Initialise the HAL layer and use 5 for LED driver priority
     hal_create(4);

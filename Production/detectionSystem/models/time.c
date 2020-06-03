@@ -10,7 +10,7 @@ struct time {
     SemaphoreHandle_t mutex;
 };
 
-detection_system_time_t create() {
+detection_system_time_t time_create() {
     detection_system_time_t time = calloc(1, sizeof(*time));
     time->mutex = xSemaphoreCreateMutex();
     return time;

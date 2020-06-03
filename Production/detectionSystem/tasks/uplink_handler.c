@@ -32,6 +32,7 @@ void uplink_handler_function(void* vParameters) {
             initialize_lora(parameters->loraAppEui, parameters->loraAppKey, parameters->maxJoinNetworkTries);
         }
         if(!lora_initialized) {
+            debugPrint("Lora not initialized...Continuing...\n");
             continue;
         }
         switch (payload_index) {
@@ -87,7 +88,7 @@ void initialize_lora(const char* loraAppEui, const char* loraAppKey, uint8_t max
     debugPrint("Set OTAA Identity (appEUI: %s, appKEY: %s): %s\n", loraAppEui, loraAppKey, lora_driver_map_return_code_to_text(set_otaa_identity_result));
 
     e_LoRa_return_code_t set_spreading_factor_result = lora_driver_set_spreading_factor(12);
-    debugPrint("Set spreading factor (%u) result: %s\n", 12, set_spreading_factor_result);
+    debugPrint("Set spreading factor (%u) result: %s\n", 12, lora_driver_map_return_code_to_text(set_spreading_factor_result));
 
 //    e_LoRa_return_code_t set_adaptive_data_rate_result = lora_driver_set_adaptive_data_rate(LoRa_ON);
 //    debugPrint("Set adaptive data rate => ON: %s\n", lora_driver_map_return_code_to_text(set_adaptive_data_rate_result));
