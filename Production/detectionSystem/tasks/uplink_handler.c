@@ -50,6 +50,7 @@ void uplink_handler_function(void* vParameters) {
                 break;
         }
         payload_index = (payload_index + 1) % 3;
+		debugPrint("Sending message with payload index - %d\n", payload_index);
 
         e_LoRa_return_code_t send_message_result = lora_driver_sent_upload_message(true, &uplink_payload);
         if(send_message_result == LoRa_NOT_JOINED) {

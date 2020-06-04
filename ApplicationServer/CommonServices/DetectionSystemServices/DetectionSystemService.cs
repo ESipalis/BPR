@@ -120,6 +120,8 @@ namespace CommonServices.DetectionSystemServices
             })
                 .Select(task => task.Result)
                 .ToList();
+            _logger.LogInformation("Saving notifications: " + JsonSerializer.Serialize(notifications));
+            await _storage.AddNotifications(notifications);
             
 
             List<NotificationToKommune> notificationsToKommune = DetectionSystemServiceUtil.NotificationsToKommuneNotifications(notifications);
@@ -140,7 +142,6 @@ namespace CommonServices.DetectionSystemServices
                 }
             }
 
-            await _storage.AddNotifications(notifications);
         }
 
         public async Task RegisterDevices(IEnumerable<Device> devices)
