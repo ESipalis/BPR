@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CommonServices.DetectionSystemServices;
@@ -7,6 +8,7 @@ using CommonServices.EndNodeCommunicator.Models;
 using Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace ApplicationServer.BackgroundServices
 {
@@ -15,10 +17,12 @@ namespace ApplicationServer.BackgroundServices
         private static readonly string Connection = "connectionstring";
 
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<ReceiveNotificationsService> _logger;
 
-        public ReceiveNotificationsService(IServiceProvider serviceProvider)
+        public ReceiveNotificationsService(IServiceProvider serviceProvider, ILogger<ReceiveNotificationsService> logger)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,6 +38,7 @@ namespace ApplicationServer.BackgroundServices
             IServiceScope scope = _serviceProvider.CreateScope();
             var detectionSystemService = scope.ServiceProvider.GetRequiredService<DetectionSystemService>();
             var endNodeCommunicator = scope.ServiceProvider.GetRequiredService<IEndNodeCommunicator>();
+            _logger.LogInformation("Handing received message: " + JsonSerializer.Serialize(message));
 
             switch (message.MessageType)
             {

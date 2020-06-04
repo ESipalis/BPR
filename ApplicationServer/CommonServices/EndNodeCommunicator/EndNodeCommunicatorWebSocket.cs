@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
@@ -113,12 +114,12 @@ namespace CommonServices.EndNodeCommunicator
 
         private static EndNodeMessage DeserializeMessage(string messageAsString)
         {
-            dynamic deserialize = JsonSerializer.Deserialize<dynamic>(messageAsString);
-            return deserialize.cmd switch
+            var deserialize = JsonSerializer.Deserialize<Dictionary<string, dynamic>>(messageAsString);
+            return deserialize["cmd"] switch
             {
-                "rx" => new UplinkDataMessage {DeviceEui = deserialize.Eui, Data = deserialize.Data, Ack = deserialize.Ack, Timestamp = deserialize.Timestamp},
-                "tx" => new SendRequestAckMessage {DeviceEui = deserialize.Eui, Successful = deserialize.success != null},
-                "txd" => new GatewayConfirmationMessage {DeviceEui = deserialize.Eui},
+                "rx" => new UplinkDataMessage {DeviceEui = deserialize["Eui"], Data = deserialize["Data"], Ack = deserialize["Ack"], Timestamp = deserialize["Timestamp"]},
+                "tx" => new SendRequestAckMessage {DeviceEui = deserialize["Eui"], Successful = deserialize["success"] != null},
+                "txd" => new GatewayConfirmationMessage {DeviceEui = deserialize["Eui"]},
                 _ => null
             };
         }
