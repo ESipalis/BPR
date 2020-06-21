@@ -59,6 +59,7 @@ namespace ApplicationServer.Controllers
                     DeviceEui = configureDevice.DeviceEui,
                     Data = DetectionSystemServiceUtil.ConfigurationToDataString(configureDevice.Configuration.ScanMinuteOfTheDay, configureDevice.Configuration.HeartbeatPeriodDays)
                 });
+                await _detectionSystemService.SetDeviceConfigurationStatus(configureDevice.DeviceEui, ConfigurationStatus.SentToNetwork);
             }
 
             return Ok();
@@ -93,6 +94,7 @@ namespace ApplicationServer.Controllers
                     DeviceEui = device.DeviceEui,
                     Data = DetectionSystemServiceUtil.ConfigurationToDataString(device.Configuration.ScanMinuteOfTheDay, device.Configuration.HeartbeatPeriodDays)
                 });
+                await _detectionSystemService.SetDeviceConfigurationStatus(device.DeviceEui, ConfigurationStatus.SentToNetwork);
             }
 
             return Ok();
