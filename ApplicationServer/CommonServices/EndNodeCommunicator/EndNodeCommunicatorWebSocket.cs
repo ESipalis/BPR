@@ -19,8 +19,10 @@ namespace CommonServices.EndNodeCommunicator
 
         private readonly ConcurrentDictionary<int, Func<EndNodeMessage, Task>> _listeners = new ConcurrentDictionary<int, Func<EndNodeMessage, Task>>();
         private readonly ConcurrentQueue<DownlinkDataMessage> _messagesToSend = new ConcurrentQueue<DownlinkDataMessage>();
+        private readonly ConcurrentQueue<string> _messagesToHandle = new ConcurrentQueue<string>();
         private int _idCounter = 0;
-        private readonly AutoResetEvent _messageEvent = new AutoResetEvent(true);
+        private readonly AutoResetEvent _sendMessageEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent _handleMessageEvent = new AutoResetEvent(false);
 
         public EndNodeCommunicatorWebSocket(EndNodeCommunicatorWebSocketConfiguration configuration, ILogger<EndNodeCommunicatorWebSocket> logger)
         {
@@ -41,11 +43,13 @@ namespace CommonServices.EndNodeCommunicator
 
                     _logger.LogInformation("Starting send next message thread...");
                     new Thread(async () => await SendNextMessage(socket, stoppingToken)).Start();
-                    _logger.LogInformation("Thread started...");
-                    // await SendNextMessage(socket, stoppingToken);
+                    _logger.LogInformation("SendNextMessage thread started...");
+                    _logger.LogInformation("Starting handle received messages thread...");
+                    new Thread(async () => await HandleReceivedMessages()).Start();
+                    _logger.LogInformation("HandleReceivedMessages thread started...");
                     _logger.LogInformation("Listening for messages...");
                     await ListenForMessages(socket, stoppingToken);
-                    _logger.LogInformation("Should not reach here");
+                    _logger.LogError("Should not reach here");
                 }
                 catch (Exception ex)
                 {
@@ -59,16 +63,16 @@ namespace CommonServices.EndNodeCommunicator
             while (true)
             {
                 _logger.LogInformation("Waiting for messages to send...");
-                _messageEvent.WaitOne();
+                _sendMessageEvent.WaitOne();
                 while (_messagesToSend.TryDequeue(out DownlinkDataMessage message))
                 {
                     var downlinkMessage = new
                     {
-                        Cmd = "tx",
-                        Eui = message.DeviceEui,
-                        Port = 1,
-                        Confirmed = message.Confirmed,
-                        Data = message.Data
+                        cmd = "tx",
+                        EUI = message.DeviceEui,
+                        port = 1,
+                        confirmed = message.Confirmed,
+                        data = message.Data
                     };
                     byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(downlinkMessage);
                     _logger.LogInformation("Sending message: " + JsonSerializer.Serialize(downlinkMessage));
@@ -103,23 +107,38 @@ namespace CommonServices.EndNodeCommunicator
                 using var reader = new StreamReader(ms, Encoding.UTF8);
                 string messageAsString = await reader.ReadToEndAsync();
                 _logger.LogInformation("Read message from websocket:" + messageAsString);
+                _messagesToHandle.Enqueue(messageAsString);
+                _handleMessageEvent.Set();
+            }
+        }
 
-                EndNodeMessage message = DeserializeMessage(messageAsString);
-                if (message != null)
+        private async Task HandleReceivedMessages()
+        {
+            while (true)
+            {
+                _logger.LogInformation("Waiting for messages to handle...");
+                _handleMessageEvent.WaitOne();
+                while (_messagesToHandle.TryDequeue(out string messageAsString))
                 {
-                    await InformListeners(message);
+                    EndNodeMessage message = DeserializeMessage(messageAsString);
+                    _logger.LogInformation("Handling message: " + JsonSerializer.Serialize(message));
+                    if (message != null)
+                    {
+                        await InformListeners(message);
+                    }
                 }
             }
         }
 
-        private static EndNodeMessage DeserializeMessage(string messageAsString)
+        private EndNodeMessage DeserializeMessage(string messageAsString)
         {
-            var deserialize = JsonSerializer.Deserialize<Dictionary<string, dynamic>>(messageAsString);
-            return deserialize["cmd"] switch
+            // var deserialize = JsonSerializer.Deserialize<Dictionary<string, object>>(messageAsString);
+            JsonElement element = JsonDocument.Parse(messageAsString).RootElement;
+            return element.Gsp("cmd") switch
             {
-                "rx" => new UplinkDataMessage {DeviceEui = deserialize["Eui"], Data = deserialize["Data"], Ack = deserialize["Ack"], Timestamp = deserialize["Timestamp"]},
-                "tx" => new SendRequestAckMessage {DeviceEui = deserialize["Eui"], Successful = deserialize["success"] != null},
-                "txd" => new GatewayConfirmationMessage {DeviceEui = deserialize["Eui"]},
+                "rx" => new UplinkDataMessage {DeviceEui = element.Gsp("EUI"), Data = element.Gsp("data"), Ack = element.GetProperty("ack").GetBoolean(), Timestamp = element.GetProperty("timestamp").GetInt64()},
+                "tx" => new SendRequestAckMessage {DeviceEui = element.Gsp("EUI"), Successful = element.Gsp("success") != null},
+                "txd" => new GatewayConfirmationMessage {DeviceEui = element.Gsp("EUI")},
                 _ => null
             };
         }
@@ -146,8 +165,9 @@ namespace CommonServices.EndNodeCommunicator
 
         public void SendMessage(DownlinkDataMessage message)
         {
+            _logger.LogInformation("Enqueing downlink data message: " + JsonSerializer.Serialize(message));
             _messagesToSend.Enqueue(message);
-            _messageEvent.Set();
+            _sendMessageEvent.Set();
         }
     }
 

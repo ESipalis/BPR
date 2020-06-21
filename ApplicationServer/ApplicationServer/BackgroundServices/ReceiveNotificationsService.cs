@@ -38,7 +38,7 @@ namespace ApplicationServer.BackgroundServices
             IServiceScope scope = _serviceProvider.CreateScope();
             var detectionSystemService = scope.ServiceProvider.GetRequiredService<DetectionSystemService>();
             var endNodeCommunicator = scope.ServiceProvider.GetRequiredService<IEndNodeCommunicator>();
-            _logger.LogInformation("Handing received message: " + JsonSerializer.Serialize(message));
+            _logger.LogInformation("Handing received message: " + JsonSerializer.Serialize<object>(message));
 
             switch (message.MessageType)
             {

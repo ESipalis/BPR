@@ -146,11 +146,13 @@ namespace CommonServices.DetectionSystemServices
 
         public async Task RegisterDevices(IEnumerable<Device> devices)
         {
+            _logger.LogInformation("Registering devices to the storage...");
             await _storage.AddDevices(devices);
         }
 
         public async Task ConfigureDevices(IEnumerable<ConfigureDevice> configureDevices)
         {
+            _logger.LogInformation("Updating device configurations in the storage...");
             await _storage.UpdateDeviceConfigurations(configureDevices);
         }
 

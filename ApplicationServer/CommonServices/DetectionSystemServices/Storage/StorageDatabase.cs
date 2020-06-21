@@ -76,7 +76,7 @@ namespace CommonServices.DetectionSystemServices.Storage
 
         public async Task UpdateDeviceConfigurationStatus(string deviceEui, ConfigurationStatus configurationStatus)
         {
-            Device device = await _context.Device.Where(x => x.DeviceEui == deviceEui).FirstAsync();
+            Device device = await GetDevice(deviceEui);
             device.Configuration.Status = configurationStatus;
             await _context.SaveChangesAsync();
         }
