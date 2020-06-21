@@ -28,12 +28,10 @@ void uplink_handler_function(void* vParameters) {
 
     TickType_t currentTicks = xTaskGetTickCount();
     for(;;) {
-        if (!lora_initialized) {
+        while (!lora_initialized) {
+            debugPrint("Lora not initialized...\n");
             initialize_lora(parameters->loraAppEui, parameters->loraAppKey, parameters->maxJoinNetworkTries);
-        }
-        if(!lora_initialized) {
-            debugPrint("Lora not initialized...Continuing...\n");
-            continue;
+            vTaskDelayUntil(&currentTicks, pdMS_TO_TICKS(5000));
         }
         switch (payload_index) {
             case 0: // 0 width
@@ -53,6 +51,7 @@ void uplink_handler_function(void* vParameters) {
 		debugPrint("Sending message with payload index - %d\n", payload_index);
 
         e_LoRa_return_code_t send_message_result = lora_driver_sent_upload_message(true, &uplink_payload);
+        debugPrint("Send message result: %s", lora_driver_map_return_code_to_text(send_message_result));
         if(send_message_result == LoRa_NOT_JOINED) {
             lora_initialized = 0;
             initialize_lora(parameters->loraAppEui, parameters->loraAppKey, parameters->maxJoinNetworkTries); // Also called here for faster reconnection.
@@ -66,6 +65,7 @@ void create_uplink_handler_task(freertos_task_parameters task_parameters, uplink
 }
 
 void initialize_lora(const char* loraAppEui, const char* loraAppKey, uint8_t maxJoinNetworkTries) {
+    debugPrint("Initializing LoRa...\n");
     lora_driver_reset_rn2483(1); // Activate reset line
     vTaskDelay(2);
     lora_driver_reset_rn2483(0); // Release reset line
