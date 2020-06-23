@@ -47,7 +47,11 @@ namespace ApplicationServer.BackgroundServices
                     await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, newStatus);
                     break;
                 case EndNodeMessageType.GatewayConfirmation:
-                    await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.SentToGateway);
+                    if ((await detectionSystemService.GetDevice(message.DeviceEui)).Configuration.Status < ConfigurationStatus.SentToGateway)
+                    {
+                        await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.SentToGateway);
+                    }
+
                     break;
                 case EndNodeMessageType.UplinkMessage:
                     var uplinkMessage = (UplinkDataMessage) message;
@@ -61,27 +65,28 @@ namespace ApplicationServer.BackgroundServices
                         }
                     });
                     Device device = await detectionSystemService.GetDevice(message.DeviceEui);
-                    if (device.Configuration.Status == ConfigurationStatus.SentToGateway)
+                    // if (device.Configuration.Status == ConfigurationStatus.SentToGateway)
+                    // {
+                    //     await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.SentToDevice);
+                    // }
+                    // else if (device.Configuration.Status == ConfigurationStatus.SentToDevice)
+                    // {
+                    if (uplinkMessage.Ack)
                     {
-                        await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.SentToDevice);
+                        await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.Acknowledged);
                     }
-                    else if (device.Configuration.Status == ConfigurationStatus.SentToDevice)
-                    {
-                        if (uplinkMessage.Ack)
-                        {
-                            await detectionSystemService.SetDeviceConfigurationStatus(message.DeviceEui, ConfigurationStatus.Acknowledged);
-                        }
-                        else
-                        {
-                            endNodeCommunicator.SendMessage(new DownlinkDataMessage
-                            {
-                                Confirmed = true,
-                                DeviceEui = device.DeviceEui,
-                                Data = DetectionSystemServiceUtil.ConfigurationToDataString(device.Configuration.ScanMinuteOfTheDay, device.Configuration.HeartbeatPeriodDays)
-                            });
-                            await detectionSystemService.SetDeviceConfigurationStatus(device.DeviceEui, ConfigurationStatus.SentToNetwork);
-                        }
-                    }
+                    // else
+                    // {
+                    //     endNodeCommunicator.SendMessage(new DownlinkDataMessage
+                    //     {
+                    //         Confirmed = true,
+                    //         DeviceEui = device.DeviceEui,
+                    //         Data = DetectionSystemServiceUtil.ConfigurationToDataString(device.Configuration.ScanMinuteOfTheDay, device.Configuration.HeartbeatPeriodDays)
+                    //     });
+                    //     await detectionSystemService.SetDeviceConfigurationStatus(device.DeviceEui, ConfigurationStatus.SentToNetwork);
+                    // }
+                    // }
+
                     break;
             }
         }

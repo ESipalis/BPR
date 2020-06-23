@@ -21,6 +21,7 @@ namespace ApplicationServer.BackgroundServices
         {
             using IServiceScope scope = ServiceProvider.CreateScope();
             var detectionSystemService = scope.ServiceProvider.GetRequiredService<DetectionSystemService>();
+            _logger.LogInformation("Resending failed notifications...");
             await detectionSystemService.ResendFailedNotifications();
         }
 

@@ -121,7 +121,7 @@ namespace CommonServices.EndNodeCommunicator
                 while (_messagesToHandle.TryDequeue(out string messageAsString))
                 {
                     EndNodeMessage message = DeserializeMessage(messageAsString);
-                    _logger.LogInformation("Handling message: " + JsonSerializer.Serialize(message));
+                    _logger.LogInformation("Deserialized message: " + JsonSerializer.Serialize<object>(message));
                     if (message != null)
                     {
                         await InformListeners(message);
@@ -132,11 +132,10 @@ namespace CommonServices.EndNodeCommunicator
 
         private EndNodeMessage DeserializeMessage(string messageAsString)
         {
-            // var deserialize = JsonSerializer.Deserialize<Dictionary<string, object>>(messageAsString);
             JsonElement element = JsonDocument.Parse(messageAsString).RootElement;
             return element.Gsp("cmd") switch
             {
-                "rx" => new UplinkDataMessage {DeviceEui = element.Gsp("EUI"), Data = element.Gsp("data"), Ack = element.GetProperty("ack").GetBoolean(), Timestamp = element.GetProperty("timestamp").GetInt64()},
+                "rx" => new UplinkDataMessage {DeviceEui = element.Gsp("EUI"), Data = element.Gsp("data"), Ack = element.GetProperty("ack").GetBoolean(), Timestamp = element.GetProperty("ts").GetInt64()},
                 "tx" => new SendRequestAckMessage {DeviceEui = element.Gsp("EUI"), Successful = element.Gsp("success") != null},
                 "txd" => new GatewayConfirmationMessage {DeviceEui = element.Gsp("EUI")},
                 _ => null

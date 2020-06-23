@@ -40,7 +40,7 @@ namespace CommonServices.DetectionSystemServices
         
         public static string ConfigurationToDataString(short scanMinuteOfTheDay, byte heartbeatPeriodDays)
         {
-            return scanMinuteOfTheDay.ToString("X2") + heartbeatPeriodDays.ToString("X2");
+            return scanMinuteOfTheDay.ToString("X4") + heartbeatPeriodDays.ToString("X2");
         }
         
     }

@@ -9,9 +9,9 @@ namespace ApplicationServer.BackgroundServices
     public abstract class TimedBackgroundService : IHostedService, IDisposable
     {
         protected IServiceProvider ServiceProvider { get; }
+        protected ILogger _logger { get; }
         private readonly TimeSpan _period;
         private readonly string _serviceName;
-        private readonly ILogger _logger;
         private Timer _timer;
 
         protected TimedBackgroundService(IServiceProvider serviceProvider, TimeSpan period, string serviceName, ILogger logger)
